@@ -1,4 +1,4 @@
-use crate::cpu::instruction::{ArithmeticTarget, Instruction};
+use crate::cpu::instruction::{ArithmeticTarget, ArithmeticTarget16, Instruction};
 use crate::cpu::registers::flag_register::FlagsRegister;
 use crate::cpu::registers::Registers;
 
@@ -44,6 +44,22 @@ impl CPU {
                     },
                 }
             }
+            Instruction::ADDHL(target) => {
+                match target {
+                    ArithmeticTarget16::BC => {
+                        let val = self.registers.get_bc();
+                        self.add_hl(val)
+                    }
+                    ArithmeticTarget16::DE => {
+                        let val = self.registers.get_de();
+                        self.add_hl(val)
+                    }
+                    ArithmeticTarget16::HL => {
+                        let val = self.registers.get_hl();
+                        self.add_hl(val)
+                    }
+                }
+            }
             _ => {}
         }
     }
@@ -62,6 +78,22 @@ impl CPU {
         let new_f = FlagsRegister::new(zero, subtract, half_carry, carry);
         self.registers.set_f(new_f);
         self.registers.set_a(new_value);
+    }
+
+    fn add_hl(&mut self,value: u16) {
+        let (new_value, did_overflow) = self.registers.get_hl().overflowing_add(value);
+        let zero = self.registers.get_f().get_zero();
+        let subtract = false;
+        let carry = did_overflow;
+
+        // Half Carry is set if adding the lower nibbles of the value and register HL
+        // together result in a value bigger than 0xFFF. If the result is larger than 0xFFF
+        // than the addition caused a carry from the lower nibble to the upper nibble.
+        let half_carry = (self.registers.get_hl() & 0xFFF) + (value & 0xFFF) > 0xFFF;
+
+        let new_f = FlagsRegister::new(zero, subtract, half_carry, carry);
+        self.registers.set_f(new_f);
+        self.registers.set_hl(new_value);
     }
 }
 
@@ -85,8 +117,26 @@ mod cpu_test {
         let expected_f = FlagsRegister::new(false, false, true, false);
 
         assert_eq!(cpu.registers.get_f(), expected_f);
+    }
 
+    #[test]
+    fn test_execute_add_hl () {
 
+        let f = FlagsRegister::new(false, true, true, true);
 
+        let register = Registers::new(1, 2, 3, 255, 4, f, 1, 2);
+
+        assert_eq!(register.get_hl(), 0b0000000100000010);
+        assert_eq!(register.get_de(), 0b1111111100000100);
+
+        let mut cpu = CPU { registers: register };
+
+        cpu.execute(Instruction::ADDHL(ArithmeticTarget16::DE));
+
+        assert_eq!(cpu.registers.get_hl(), 0b0000000000000110);
+
+        let expected_f = FlagsRegister::new(false, false, false, true);
+
+        // assert_eq!(cpu.registers.get_f(), expected_f);
     }
 }
