@@ -9,4 +9,6 @@ pub enum ArithmeticTarget {
     H,
     L,
 }
-pub enum Instruction { ADD(ArithmeticTarget), }
+pub enum Instruction {
+    ADD(ArithmeticTarget),
+}

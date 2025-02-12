@@ -1,6 +1,6 @@
 use crate::cpu::registers::flag_register::FlagsRegister;
 
-mod flag_register;
+pub mod flag_register;
 
 pub struct Registers {
     a: u8,
@@ -18,6 +18,27 @@ pub struct Registers {
 /// the possible combinations are "af", "bc", "de" and "hl"
 /// since "f" register is special, it has his own way to make things
 impl Registers {
+
+    pub fn new(a: u8,
+               b: u8,
+               c: u8,
+               d: u8,
+               e: u8,
+               f: FlagsRegister,
+               h: u8,
+               l: u8,) -> Registers {
+
+        Registers {
+            a,
+            b,
+            c,
+            d,
+            e,
+            f,
+            h,
+            l
+        }
+    }
 
     // a -> 0a -> a0 -> af
     fn get_af(&self) -> u16 {
@@ -87,11 +108,11 @@ impl Registers {
 
     pub fn get_e(&self) -> u8 {self.e}
 
-    fn set_f(&mut self, value: u8) {
-        self.f = FlagsRegister::from(value);
+    pub fn set_f(&mut self, value: FlagsRegister ) {
+        self.f = value;
     }
 
-    pub fn get_f(&self) -> u8 {u8::from(self.f.clone())}
+    pub fn get_f(&self) -> FlagsRegister {self.f.clone()}
 
     fn set_h(&mut self, value: u8) {
         self.h = value;
