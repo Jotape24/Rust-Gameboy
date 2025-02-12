@@ -57,7 +57,7 @@ impl Registers {
 
 
 impl Registers {
-    fn set_a(&mut self, value: u8) {
+    pub(crate) fn set_a(&mut self, value: u8) {
         self.a = value;
     }
 
