@@ -124,6 +124,38 @@ impl CPU {
                     },
                 }
             }
+            Instruction::SBC(target) => {
+                match target {
+                    ArithmeticTarget::A => {
+                        let val = self.registers.get_a();
+                        self.sub_carry(val);
+                    },
+                    ArithmeticTarget::B => {
+                        let val = self.registers.get_b();
+                        self.sub_carry(val);
+                    },
+                    ArithmeticTarget::C => {
+                        let val = self.registers.get_c();
+                        self.sub_carry(val);
+                    },
+                    ArithmeticTarget::D => {
+                        let val = self.registers.get_d();
+                        self.sub_carry(val);
+                    },
+                    ArithmeticTarget::E => {
+                        let val = self.registers.get_e();
+                        self.sub_carry(val);
+                    },
+                    ArithmeticTarget::H => {
+                        let val = self.registers.get_h();
+                        self.sub_carry(val);
+                    },
+                    ArithmeticTarget::L => {
+                        let val = self.registers.get_l();
+                        self.sub_carry(val);
+                    },
+                }
+            }
             _ => {}
         }
     }
@@ -163,7 +195,7 @@ impl CPU {
 
     // adds a value + carry to the A register
     fn add_carry(&mut self, value: u8) {
-        let carry_val = u8::from(self.registers.get_f().get_carry()); // Obtener el carry actual
+        let carry_val = u8::from(self.registers.get_f().get_carry()); // Obtains carry
 
         let (partial_sum, carry1) = self.registers.get_a().overflowing_add(value);
         let (new_value, carry2) = partial_sum.overflowing_add(carry_val);
@@ -179,13 +211,31 @@ impl CPU {
         self.registers.set_a(new_value);
     }
 
-
+    // subtract a value from register A
     fn sub(&mut self, value: u8) {
         let (new_value, did_overflow) = self.registers.get_a().overflowing_sub(value);
         let zero = new_value == 0;
         let subtract = true;
         let carry = did_overflow;
         // if the lower nibble of value is bigger than the lower nibble of A
+        let half_carry = (self.registers.get_a() & 0xF) < (value & 0xF);
+
+        let new_f = FlagsRegister::new(zero, subtract, half_carry, carry);
+        self.registers.set_f(new_f);
+        self.registers.set_a(new_value);
+    }
+
+    // subtract a value + carry from register A
+    fn sub_carry(&mut self, value: u8) {
+        let carry_val = u8::from(self.registers.get_f().get_carry()); // Obtains carry
+
+        let (partial_sub, carry1) = self.registers.get_a().overflowing_sub(value);
+        let (new_value, carry2) = partial_sub.overflowing_sub(carry_val);
+
+        let zero = new_value == 0;
+        let subtract = true;
+        let carry = carry1 || carry2;
+
         let half_carry = (self.registers.get_a() & 0xF) < (value & 0xF);
 
         let new_f = FlagsRegister::new(zero, subtract, half_carry, carry);
@@ -270,5 +320,22 @@ mod cpu_test {
         assert_eq!(cpu.registers.get_f(), expected_f);
 
         assert_eq!(cpu.registers.get_a(), 0b01110_1111);
+    }
+
+    #[test]
+    fn test_execute_sub_carry () {
+        let f = FlagsRegister::new(false, true, true, true);
+
+        let register = Registers::new(0b1111_0001, 2, 3, 0b0000_0010, 5, f, 6, 7);
+
+        let mut cpu = CPU { registers: register };
+
+        cpu.execute(Instruction::SBC(ArithmeticTarget::D));
+
+        let expected_f = FlagsRegister::new(false, true, true, false);
+
+        assert_eq!(cpu.registers.get_f(), expected_f);
+
+        assert_eq!(cpu.registers.get_a(), 0b01110_1110);
     }
 }
